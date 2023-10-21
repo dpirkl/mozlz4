@@ -1,10 +1,12 @@
 # Thanks to https://github.com/toashd/mozlz4/tree/master
 # I simply converted the code to a python script and added the ability to output as markdown
 
-import json
-import lz4.block
-import struct
 import argparse
+import json
+import logging
+import struct
+
+import lz4.block
 
 # Custom Mozilla LZ4 file header / magic number
 MAGIC_NUMBER = "mozLz40\0"
@@ -62,12 +64,17 @@ if __name__ == "__main__":
 
     if args.markdown:
         # TODO: Visualize folders
-        with open('bookmarks.md', 'w') as file:
+        if output_path[-3:] != ".md":
+            logging.warning("Output file does not end with .md")
+        with open(output_path, 'w') as file:
+            file.write("# Bookmarks\n\n")
             links = []
             create_md(decompressed_data, links)
             for link in links:
                 file.write(f"[{link[0]}]({link[1]})\n\n")
     else:
+        if output_path[-5:] != ".json":
+            logging.warning("Output file does not end with .json")
         with open(output_path, 'w') as file:
             json.dump(decompressed_data, file, indent=4)
 
