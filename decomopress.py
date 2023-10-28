@@ -5,6 +5,7 @@ import argparse
 import json
 import logging
 import struct
+from io import TextIOWrapper
 
 import lz4.block
 
@@ -24,15 +25,19 @@ def decompress(input_buffer):
     output_buffer = lz4.block.decompress(input_buffer[12:], uncompressed_size=output_size)
     return json.loads(output_buffer.decode('utf-8'))
 
-def create_md(json_dict: dict, links: list):
+def write_md(json_dict: dict, file: TextIOWrapper, depth=1):
     if 'children' not in json_dict:
         return
-    for child in json_dict['children']:
+    for idx, child in enumerate(json_dict['children']):
+        if not 'uri' in child:
+            file.write(f"{'#'*(depth+1)} {child['title']}\n\n")
+        write_md(child, file, depth=depth+1)
         if 'uri' in child and 'title' in child:
-            links.append((child['title'], child['uri']))
+            file.write(f"[{child['title']}]({child['uri']})\n")
         elif 'uri' in child:
-            links.append((child['uri'], child['uri']))
-        create_md(child, links)
+            links.append(f"[{child['uri']}]({child['uri']})\n")
+    file.write("\n")
+    
 
 
 if __name__ == "__main__":
@@ -68,10 +73,7 @@ if __name__ == "__main__":
             logging.warning("Output file does not end with .md")
         with open(output_path, 'w') as file:
             file.write("# Bookmarks\n\n")
-            links = []
-            create_md(decompressed_data, links)
-            for link in links:
-                file.write(f"[{link[0]}]({link[1]})\n\n")
+            write_md(json_dict=decompressed_data, file=file)
     else:
         if output_path[-5:] != ".json":
             logging.warning("Output file does not end with .json")
