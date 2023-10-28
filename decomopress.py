@@ -28,16 +28,13 @@ def decompress(input_buffer):
 def write_md(json_dict: dict, file: TextIOWrapper, depth=1):
     if 'children' not in json_dict:
         return
-    for idx, child in enumerate(json_dict['children']):
-        if not 'uri' in child:
-            file.write(f"{'#'*(depth+1)} {child['title']}\n\n")
+    for child in json_dict['children']:
+        if not 'uri' in child and 'children' in child:
+            # TODO: dont put two blank lines between headings
+            file.write(f"\n\n{'#'*(depth+1)} {child['title']}\n")
         write_md(child, file, depth=depth+1)
         if 'uri' in child and 'title' in child:
-            file.write(f"[{child['title']}]({child['uri']})\n")
-        elif 'uri' in child:
-            links.append(f"[{child['uri']}]({child['uri']})\n")
-    file.write("\n")
-    
+            file.write(f"\n[{child['title']}]({child['uri']})")
 
 
 if __name__ == "__main__":
@@ -72,8 +69,9 @@ if __name__ == "__main__":
         if output_path[-3:] != ".md":
             logging.warning("Output file does not end with .md")
         with open(output_path, 'w') as file:
-            file.write("# Bookmarks\n\n")
+            file.write("# Bookmarks created with [mozlz4](https://github.com/dpirkl/mozlz4)")
             write_md(json_dict=decompressed_data, file=file)
+            file.write("\n")
     else:
         if output_path[-5:] != ".json":
             logging.warning("Output file does not end with .json")
